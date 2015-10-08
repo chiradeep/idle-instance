@@ -1,0 +1,6 @@
+"OutputKey": "IdleInstanceAlarmSNSTopicTopicARN", 
+   "OutputValue": "arn:aws:sns:us-west-2:987605588178:idleinstancestack0-IdleInstanceAlarmSNSTopic-BKKKKKKKKKKK"
+"OutputKey": "IdleInstanceQueueInfo", 
+   "OutputValue": "ARN: arn:aws:sqs:us-west-2:388888888888:idleinstancestack0-IdleInstanceQueue-KJJJJJJJJ URL: https://sqs.us-west-2.amazonaws.com/333333333333/idleinstancestack0-IdleInstanceQueue-KKKKKKKKKK"
+"OutputKey": "IdleInstanceQueueUserInfo", 
+   "OutputValue": "ARN: arn:aws:iam::384845588177:user/idleinstancestack0-IdleInstanceQueueUser-1FBJ8C0SOTGPR Access Key: AKIAABCDEDFHJKCIQNAD Secret Key: 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"

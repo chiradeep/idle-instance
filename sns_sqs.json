@@ -1,0 +1,120 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+
+  "Description" : "AWS CloudFormation Sample Template SNSToSQS: This Template creates an CPU Metric Alarm SNS topic (IdleInstanceAlarmSNSTopic) that can send messages to a SQS queue. IdleInstanceQueueUser is an IAM user that can read messages from the SQS queue. AlarmQueuePolicy assigns those permissions to IdleInstanceQueueUser. It also assigns permission for IdleInstanceAlarmSNSTopic to publish its notifications to the queue. The template creates access keys for the Queue reader (IdleAlarmQueueUser). ***Warning*** you will be billed for the AWS resources used if you create a stack from this template.",
+
+  "Parameters" : {
+
+    "IdleInstanceQueueUserPassword": {
+      "NoEcho": "true",
+      "Type": "String",
+      "Description" : "Password for the IAM user IdleInstanceQueueUser",
+      "MinLength": "1",
+      "MaxLength": "41",
+      "ConstraintDescription" : "password must be between 1 and 41 characters."
+    }
+  },
+
+  "Resources" : {
+    "IdleInstanceAlarmSNSTopic" : {
+      "Type" : "AWS::SNS::Topic",
+      "Properties" : {
+        "Subscription" : [ {
+          "Endpoint" : { "Fn::GetAtt" : ["IdleInstanceQueue", "Arn"]},
+          "Protocol" : "sqs"
+        } ]
+      }
+    },
+
+    "IdleInstanceQueue" : {
+      "Type" : "AWS::SQS::Queue"
+    },
+
+
+    "IdleInstanceQueueUser" : {
+     "Type" : "AWS::IAM::User",
+     "Properties" : {
+       "LoginProfile": {
+         "Password": {"Ref" : "IdleInstanceQueueUserPassword"}
+       }
+     }
+    },
+
+    "IdleInstanceQueueUserKey" : {
+     "Type" : "AWS::IAM::AccessKey",
+     "Properties" : {
+          "UserName" : {"Ref": "IdleInstanceQueueUser"}
+      }
+    },
+
+    "ReadMessageQueueGroup" : {
+      "Type" : "AWS::IAM::Group",
+      "Properties" : {
+        "Policies": [ {
+          "PolicyName": "IdleInstanceQueueGroupPolicy",
+          "PolicyDocument": {
+            "Statement":[ {
+              "Effect":"Allow",
+ 	      "Action":[ "sqs:DeleteMessage", "sqs:ReceiveMessage" ],
+              "Resource":[ { "Fn::GetAtt" : ["IdleInstanceQueue", "Arn"]} ]
+            } ]
+          }
+        } ]
+      }
+    },
+
+    "AddUserToIdleInstanceQueueGroup" : {
+      "Type" : "AWS::IAM::UserToGroupAddition",
+      "Properties" : {
+        "GroupName": {"Ref" : "ReadMessageQueueGroup"},
+        "Users" : [{ "Ref" : "IdleInstanceQueueUser" }]
+      }
+    },
+
+    "IdleInstanceQueuePolicy" : {
+      "Type" : "AWS::SQS::QueuePolicy",
+      "Properties" : {
+        "PolicyDocument":  {
+          "Id":"IdleInstanceQueuePolicy",
+          "Statement" : [ {
+            "Sid":"Allow-SendMessage-To-Both-Queues-From-SNS-Topic",
+	    "Effect":"Allow",
+	    "Principal" : {"AWS" : "*"},
+ 	    "Action":["sqs:SendMessage"],
+	    "Resource": "*",
+            "Condition": {
+              "ArnEquals": { "aws:SourceArn": { "Ref" : "IdleInstanceAlarmSNSTopic" } }
+            }
+          } ]
+        },
+        "Queues" : [{"Ref" : "IdleInstanceQueue"}]
+      }
+    }
+  },
+
+  "Outputs" : {
+    "IdleInstanceAlarmSNSTopicTopicARN" : {
+      "Value" : { "Ref" : "IdleInstanceAlarmSNSTopic" },
+      "Description" : "Topic ARN of newly created SNS topic"
+    },
+    "IdleInstanceQueueInfo" : {
+      "Value" : {"Fn::Join" : [ " ", [ "ARN:", { "Fn::GetAtt" : [ "IdleInstanceQueue", "Arn" ] }, "URL:", { "Ref" : "IdleInstanceQueue" } ] ]},
+      "Description" : "Idle Instance Queue details"
+    },
+
+    "IdleInstanceQueueUserInfo" : {
+      "Description" : "Information for consumer",
+      "Value" : {"Fn::Join" : [
+        " ",
+        [
+          "ARN:",
+          { "Fn::GetAtt" : [ "IdleInstanceQueueUser", "Arn" ] },
+          "Access Key:",
+          {"Ref" : "IdleInstanceQueueUserKey"},
+          "Secret Key:",
+          {"Fn::GetAtt" : ["IdleInstanceQueueUserKey", "SecretAccessKey"]}
+        ]
+      ]}
+    }
+  }
+}
